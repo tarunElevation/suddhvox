@@ -1,0 +1,14 @@
+// Maven Central kabhi kabhi GitHub ke servers ko 429 (Too Many Requests) deta hai.
+// Isliye Google ka Maven Central mirror sabse pehle try hota hai; na mile to asli repo se uthega.
+def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+
+allprojects {
+    buildscript {
+        repositories {
+            maven { url mirror }
+        }
+    }
+    repositories {
+        maven { url mirror }
+    }
+}
