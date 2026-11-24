@@ -1,55 +1,55 @@
-# ShuddhVox (शुद्ध Vox)
+# ShuddhVox
 
-ऑडियो और वीडियो से बैकग्राउंड शोर हटाने वाला Android ऐप। Created by Tarun.
+An Android app that removes background noise from audio and video. Created by Tarun.
 
-## APK कैसे बनाएँ (फ़ोन से)
+## Build the APK (from a phone)
 
-1. GitHub में इस repository के **Actions** टैब पर जाइए।
-2. बाईं तरफ़ **Build APK** चुनिए, फिर **Run workflow** दबाइए।
-3. 5 से 10 मिनट बाद उस run को खोलिए। नीचे **Artifacts** में **ShuddhVox-apk** मिलेगा।
-4. उसे डाउनलोड करके खोलिए (ZIP है), अंदर `app-debug.apk` है। फ़ोन में इंस्टॉल कीजिए।
+1. Open this repository on GitHub and go to the **Actions** tab.
+2. Choose **Build APK**, then tap **Run workflow**.
+3. After 5 to 10 minutes open the finished run. Under **Artifacts** you will find **ShuddhVox-apk**.
+4. Download it and unzip it. Inside is `app-debug.apk`. Install it on your phone.
 
-पहली बार इंस्टॉल करते समय फ़ोन "अज्ञात स्रोत" की अनुमति माँगेगा। दे दीजिए।
+The first time, Android asks to allow installs from unknown sources. Allow it.
 
-यह debug APK है, दोस्तों के साथ टेस्ट करने के लिए। Play Store के लिए signed release बिल्ड अलग से चाहिए, वह अगला क़दम है।
+This is a debug APK for testing. Play Store needs a signed release build, which is the next step.
 
-## विज्ञापन (AdMob)
+## Ads (AdMob)
 
-सब सेटिंग `www/admob.json` में हैं:
+All ad settings are in `www/admob.json`:
 
-| नाम | मतलब |
+| Key | Meaning |
 |---|---|
-| `testing` | `true` पर Google के टेस्ट ऐड दिखते हैं। असली ऐड के लिए `false` कीजिए |
-| `appId` | AdMob की App ID, `ca-app-pub-xxxxxxxx~yyyyyyyy` जैसी |
-| `bannerAdUnitId` | AdMob की Ad unit ID, `ca-app-pub-xxxxxxxx/yyyyyyyy` जैसी |
-| `idleBanner` | `true` करने पर प्रोसेस के बाहर भी नीचे छोटा बैनर रहेगा |
+| `testing` | `true` shows Google test ads. Set `false` for real ads |
+| `appId` | Your AdMob App ID, like `ca-app-pub-xxxxxxxx~yyyyyyyy` |
+| `bannerAdUnitId` | Your AdMob ad unit ID, like `ca-app-pub-xxxxxxxx/yyyyyyyy` |
+| `idleBanner` | `true` keeps a small banner at the bottom when nothing is processing |
 
-अभी इसमें Google के आधिकारिक **टेस्ट** ID हैं। इनसे कमाई नहीं होती।
+The file currently holds Google's official **test** IDs. They earn nothing.
 
-असली ऐड चालू करने के क़दम:
-1. admob.google.com पर खाता बनाइए और अपना ऐप जोड़िए। App ID मिलेगी।
-2. उस ऐप में एक **Banner** ad unit बनाइए। Ad unit ID मिलेगी।
-3. `www/admob.json` में दोनों ID चिपकाइए और `testing` को `false` कीजिए।
-4. Actions में दोबारा **Build APK** चलाइए।
+To turn on real ads:
+1. Create an account at admob.google.com and add your app. You get an App ID.
+2. Create a **Banner** ad unit in that app. You get an ad unit ID.
+3. Paste both IDs into `www/admob.json` and set `testing` to `false`.
+4. Run **Build APK** again.
 
-अपने ही असली ऐड पर बार-बार टैप मत कीजिए। इससे AdMob खाता बंद हो सकता है। टेस्टिंग में टेस्ट ऐड ही रखिए।
+Never tap your own real ads. AdMob can ban the account. Keep test ads on while testing.
 
-## ऐड कहाँ दिखते हैं
+## Where ads appear
 
-जब फ़ाइल प्रोसेस होती है, ऊपर वाला हिस्सा तरंग और प्रगति दिखाता है और नीचे 300x250 का ऐड चलता है। प्रोसेस पूरी होते ही ऐड हट जाता है।
+While a file is being processed, the top half shows the waveform and progress, and a 300x250 ad runs in the bottom half. The ad goes away when processing finishes.
 
-## बदलाव कैसे करें
+## Making changes
 
-- ऐप का रूप और काम: `www/index.html`
-- ऐड की सेटिंग: `www/admob.json`
-- ऐप का नाम और ID: `capacitor.config.json`
+- App look and behaviour: `www/index.html`
+- Ad settings: `www/admob.json`
+- App name and ID: `capacitor.config.json`
 
-बदलाव के बाद दोबारा **Build APK** चलाइए।
+After a change, run **Build APK** again.
 
-## Play Store से पहले
+## Before Play Store
 
-- Play Console का डेवलपर खाता
-- Signed release बिल्ड (keystore)
-- Privacy Policy का पेज, क्योंकि ऐप में विज्ञापन हैं
-- AdMob की असली ID
-- ऐप का आइकन और स्क्रीनशॉट
+- A Play Console developer account
+- A signed release build (keystore)
+- A Privacy Policy page, because the app shows ads
+- Real AdMob IDs
+- App icon and screenshots

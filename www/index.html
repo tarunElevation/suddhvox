@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Yatra+One&display=swap">
 <style>
 /* Layout: waveform stage first, one working panel beside it on wide screens.
-   Identity: grey grain is noise, a gold thread is the pure voice (शुद्ध = pure, like gold). */
+   Identity: grey grain is noise, a gold thread is the pure voice (Shuddh means pure, like gold). */
 :root{
   --bg:#0c0e12; --panel:#13161c; --panel-2:#1b1f27; --line:#272c37;
   --fg:#ece8df; --muted:#8e96a4; --grain:#5a6270;
@@ -179,50 +179,76 @@ legend{padding:0; margin-bottom:10px; width:100%}
 .foot .mono{font-family:var(--font-mono); font-size:.8125rem}
 /* while a file is processing the hero folds away so progress sits in the top half, ad in the bottom half */
 body.processing .hero{display:none}
+body.processing .panel{opacity:.4; pointer-events:none}
+
+/* polish */
+[hidden]{display:none!important}
+body{background-image:radial-gradient(900px 380px at 50% -140px, color-mix(in srgb, var(--gold) 14%, transparent), transparent 70%); background-repeat:no-repeat}
+.stage{background:radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--gold) 8%, transparent), transparent 65%), var(--panel)}
+.mark .dev{letter-spacing:.01em}
+.tags{list-style:none; margin:16px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:8px}
+.tags li{border:1px solid var(--line); border-radius:999px; padding:3px 12px; font:500 .75rem var(--font-mono); color:var(--muted)}
+.ic{width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none}
+.drop .up{width:28px; height:28px; color:var(--gold); margin-bottom:4px}
+.mode .m-t{display:flex; align-items:center; gap:10px}
+.mode .ic{color:var(--muted)}
+.mode:has(input:checked) .ic{color:var(--gold)}
+.btn.primary{box-shadow:0 8px 24px -10px var(--gold)}
+.btn:active,.play:active{transform:scale(.97)}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{border:1px solid var(--line); border-radius:999px; padding:4px 12px; font-size:.8125rem; color:var(--muted)}
+.chip b{color:var(--gold); font:500 .875rem var(--font-mono); margin-right:6px; font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
 
 <div class="page">
   <header class="top">
-    <a class="mark" href="#studio" aria-label="ShuddhVox"><span class="dev">शुद्ध</span><span class="lat">Vox</span></a>
-    <nav class="nav" aria-label="मुख्य मेनू">
-      <a href="#studio" id="nav-studio">स्टूडियो</a>
+    <a class="mark" href="#studio" aria-label="ShuddhVox"><span class="dev">Shuddh</span><span class="lat">Vox</span></a>
+    <nav class="nav" aria-label="Main menu">
+      <a href="#studio" id="nav-studio">Studio</a>
       <a href="#about" id="nav-about">About</a>
     </nav>
   </header>
 
   <main id="view-studio">
     <section class="hero">
-      <h1><em>आवाज़</em> रहे,<br>शोर जाए।</h1>
-      <p>कॉल रिकॉर्डिंग, व्लॉग या फ़िल्म का ऑडियो डालिए। बैकग्राउंड का शोर हटाकर साफ़ आवाज़ पाइए। फ़ाइल आपके फ़ोन में ही प्रोसेस होती है, कहीं अपलोड नहीं होती।</p>
+      <h1>Keep the <em>voice</em>.<br>Lose the noise.</h1>
+      <p>Drop in a call recording, a vlog or film audio. ShuddhVox removes the background noise and keeps the voice clear.</p>
+      <ul class="tags"><li>Runs on your phone</li><li>Nothing is uploaded</li><li>Free</li></ul>
     </section>
 
     <div class="studio">
-      <section class="stage" aria-label="तरंग और प्लेयर">
-        <canvas id="wave" tabindex="-1" role="img" aria-label="आवाज़ की तरंग"></canvas>
-        <p class="status" id="status" aria-live="polite">नमूना तरंग। स्लाइडर खिसकाकर देखिए, शोर कैसे हटता है।</p>
+      <section class="stage" aria-label="Waveform and player">
+        <canvas id="wave" tabindex="-1" role="img" aria-label="Audio waveform"></canvas>
+        <p class="status" id="status" aria-live="polite">Sample waveform. Move the cleaning slider to see noise disappear.</p>
         <div class="meter" id="stageMeter" hidden><i id="stageBar"></i></div>
+        <div class="chips" id="chips" hidden>
+          <span class="chip"><b id="chipNoise">-</b>noise floor</span>
+          <span class="chip"><b id="chipVoice">-</b>voice level</span>
+          <span class="chip"><b id="chipTime">-</b>to clean</span>
+        </div>
 
         <div class="transport" id="player">
-          <button class="play" id="playBtn" type="button" aria-label="चलाएँ" disabled>
+          <button class="play" id="playBtn" type="button" aria-label="Play" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path id="playIcon" d="M7 4.5v15l12-7.5z"/></svg>
           </button>
-          <div class="seg" role="group" aria-label="कौन सा ऑडियो सुनें">
-            <button type="button" id="abO" aria-pressed="true" disabled>मूल</button>
-            <button type="button" id="abC" aria-pressed="false" disabled>साफ़</button>
+          <div class="seg" role="group" aria-label="Which audio to play">
+            <button type="button" id="abO" aria-pressed="true" disabled>Original</button>
+            <button type="button" id="abC" aria-pressed="false" disabled>Clean</button>
           </div>
           <span class="time" id="time">00:00 / 00:00</span>
         </div>
-        <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="ऑडियो में आगे-पीछे जाएँ" disabled>
+        <input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Seek in audio" disabled>
       </section>
 
-      <section class="panel" aria-label="सेटिंग">
+      <section class="panel" aria-label="Settings">
         <div class="sec">
-          <h2 class="step-h"><b>01</b><span class="t">फ़ाइल</span></h2>
+          <h2 class="step-h"><b>01</b><span class="t">File</span></h2>
           <label class="drop" id="drop" for="file">
-            <span class="big" id="dropBig">ऑडियो या वीडियो यहाँ छोड़िए</span>
-            <span class="small">या टैप करके चुनिए · MP3, WAV, M4A, MP4, WebM</span>
+            <svg class="ic up" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5M7 10l5-5 5 5M5 19h14"/></svg>
+            <span class="big" id="dropBig">Drop an audio or video file here</span>
+            <span class="small">or tap to choose · MP3, WAV, M4A, MP4, WebM</span>
           </label>
           <input class="sr" type="file" id="file" accept="audio/*,video/*">
           <div class="file-row" id="fileRow" hidden>
@@ -233,54 +259,54 @@ body.processing .hero{display:none}
 
         <div class="sec">
           <fieldset>
-            <legend class="step-h"><b>02</b><span class="t">मोड चुनिए</span></legend>
+            <legend class="step-h"><b>02</b><span class="t">Choose a mode</span></legend>
             <label class="mode">
               <input type="radio" name="mode" value="call" checked>
-              <span class="m-t">कॉल रिकॉर्डिंग</span>
-              <span class="m-d">धीमी आवाज़ तेज़ और साफ़ हो जाती है।</span>
+              <span class="m-t"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Call recording</span>
+              <span class="m-d">Quiet voices get louder and clearer.</span>
             </label>
             <label class="mode">
               <input type="radio" name="mode" value="vlog">
-              <span class="m-t">व्लॉग / YouTube</span>
-              <span class="m-d">हवा, ट्रैफ़िक और भीड़ की गूँज कम होती है।</span>
+              <span class="m-t"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>Vlog / YouTube</span>
+              <span class="m-d">Reduces wind, traffic and crowd hum.</span>
             </label>
             <label class="mode">
               <input type="radio" name="mode" value="cinema">
-              <span class="m-t">फ़िल्म / सिनेमा</span>
-              <span class="m-d">हल्की सफ़ाई, ताकि संगीत और इफ़ेक्ट्स बचे रहें। अपनी या लाइसेंस वाली फ़ाइल पर ही इस्तेमाल करें।</span>
+              <span class="m-t"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>Film / Cinema</span>
+              <span class="m-d">Gentle cleaning that keeps music and effects. Use it only on your own or licensed files.</span>
             </label>
           </fieldset>
         </div>
 
         <div class="sec">
-          <h2 class="step-h"><b>03</b><span class="t">सफ़ाई का स्तर</span></h2>
+          <h2 class="step-h"><b>03</b><span class="t">Cleaning level</span></h2>
           <div>
-            <div class="level-head"><label for="strength" class="sr">सफ़ाई का स्तर</label><span></span><span class="level-val" id="strengthVal">75%</span></div>
+            <div class="level-head"><label for="strength" class="sr">Cleaning level</label><span></span><span class="level-val" id="strengthVal">75%</span></div>
             <input type="range" id="strength" min="0" max="100" value="75" step="1">
-            <div class="level-ends"><span>हल्का</span><span>पूरा</span></div>
+            <div class="level-ends"><span>Light</span><span>Full</span></div>
           </div>
-          <p class="hint">ज़्यादा सफ़ाई से आवाज़ थोड़ी दबी लग सकती है। पहले 60 से 75 पर सुनकर देखिए।</p>
+          <p class="hint">A higher level can make the voice sound slightly muffled. Try 60 to 75 first.</p>
         </div>
 
         <div class="sec">
           <div class="btn-row">
-            <button class="btn primary" id="cleanBtn" type="button" disabled>आवाज़ साफ़ करें</button>
-            <div class="meter" id="meter" role="progressbar" aria-label="सफ़ाई की प्रगति" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><i id="meterBar"></i></div>
-            <p class="hint" id="cleanHint">बटन चालू करने के लिए पहले फ़ाइल चुनिए।</p>
+            <button class="btn primary" id="cleanBtn" type="button" disabled>Clean audio</button>
+            <div class="meter" id="meter" role="progressbar" aria-label="Cleaning progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><i id="meterBar"></i></div>
+            <p class="hint" id="cleanHint">Choose a file first to enable the button.</p>
           </div>
         </div>
 
         <div class="sec" id="saveBox" hidden>
-          <h2 class="step-h"><b>04</b><span class="t">तैयार फ़ाइल</span></h2>
+          <h2 class="step-h"><b>04</b><span class="t">Your file</span></h2>
           <div class="btn-row">
-            <button class="btn primary" id="saveAudio" type="button">साफ़ ऑडियो सेव करें</button>
-            <button class="btn" id="saveVideo" type="button" hidden>साफ़ आवाज़ वाला वीडियो बनाएँ</button>
+            <button class="btn primary" id="saveAudio" type="button">Save clean audio</button>
+            <button class="btn" id="saveVideo" type="button" hidden>Make video with clean audio</button>
           </div>
           <div class="vidwrap" id="vidwrap" hidden>
             <video id="vid" playsinline muted></video>
             <div class="meter" style="margin-top:10px"><i id="vidBar"></i></div>
           </div>
-          <p class="hint" id="saveNote">सेव दबाने पर शेयर मेन्यू खुलेगा। वहाँ से Files, Drive या WhatsApp चुनिए।</p>
+          <p class="hint" id="saveNote">Tap Save to open the share menu, then choose Files, Drive or WhatsApp.</p>
         </div>
       </section>
     </div>
@@ -288,27 +314,27 @@ body.processing .hero{display:none}
 
   <main id="view-about" hidden>
     <article class="about">
-      <h2>ShuddhVox के बारे में</h2>
+      <h2>About ShuddhVox</h2>
       <p class="credit">Created by <strong>Tarun</strong></p>
       <div>
-        <h3>यह क्या करता है</h3>
-        <p>ShuddhVox (शुद्ध + Vox, यानी शुद्ध आवाज़) रिकॉर्डिंग से बैकग्राउंड का शोर हटाता है। कॉल रिकॉर्डिंग, व्लॉग, इंटरव्यू या फ़िल्म का ऑडियो, कुछ भी डाल सकते हैं। वीडियो फ़ाइल हो तो उसकी आवाज़ साफ़ करके नया वीडियो भी बन जाता है।</p>
+        <h3>What it does</h3>
+        <p>ShuddhVox (Shuddh means pure, Vox means voice) removes background noise from recordings. Use it on call recordings, vlogs, interviews or film audio. If you give it a video, it can also make a new video with the cleaned sound.</p>
       </div>
       <div>
-        <h3>कैसे काम करता है</h3>
+        <h3>How it works</h3>
         <ul>
-          <li>फ़ाइल के सबसे शांत हिस्सों से शोर की पहचान बनती है।</li>
-          <li>फिर हर frequency से उतना शोर घटाया जाता है जितना सफ़ाई का स्तर तय करता है।</li>
-          <li>कॉल और व्लॉग मोड में आवाज़ का volume भी संतुलित होता है।</li>
-          <li>सब कुछ आपके फ़ोन में होता है। आपकी फ़ाइल किसी सर्वर पर नहीं जाती।</li>
-          <li>ऐप मुफ़्त है। फ़ाइल प्रोसेस होते समय विज्ञापन दिखते हैं।</li>
+          <li>It learns the noise from the quietest parts of your file.</li>
+          <li>It then lowers that noise in every frequency, as much as the cleaning level allows.</li>
+          <li>In Call and Vlog modes the voice volume is also balanced.</li>
+          <li>Everything happens on your phone. Your file never goes to a server.</li>
+          <li>The app is free. Ads are shown while a file is being processed.</li>
         </ul>
       </div>
       <div>
-        <h3>सीमाएँ</h3>
-        <p>यह पंखे की हिस, हवा की सरसराहट, AC और भीड़ की लगातार गूँज जैसे स्थिर शोर पर सबसे अच्छा चलता है। बदलती आवाज़ें, जैसे पीछे चल रही दूसरी बातचीत या संगीत, पूरी तरह अलग नहीं होतीं। उसके लिए AI source-separation मॉडल चाहिए, जो अगला क़दम हो सकता है।</p>
+        <h3>Limits</h3>
+        <p>It works best on steady noise such as fan hiss, wind, air conditioners and constant crowd hum. Changing sounds, like another conversation or music in the background, are not fully separated. That needs an AI source-separation model, which can be a later upgrade.</p>
       </div>
-      <p class="hint">Version 0.1 · प्रोटोटाइप</p>
+      <p class="hint">Version 0.1 · Prototype</p>
     </article>
   </main>
 
@@ -334,7 +360,7 @@ var MODES = {
 
 var ids = ['wave','status','file','drop','dropBig','fileRow','fileName','fileMeta','strength','strengthVal',
   'cleanBtn','meter','meterBar','cleanHint','playBtn','playIcon','abO','abC','time','seek',
-  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar'];
+  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar','chips','chipNoise','chipVoice','chipTime'];
 var els = {};
 ids.forEach(function(id){ els[id] = document.getElementById(id); });
 
@@ -528,6 +554,18 @@ function activeRms(x, sr){
   for(i=0;i<cnt;i++){ if(pw[i] >= med){ sum += pw[i]; n++; } }
   return Math.sqrt(sum/Math.max(1, n));
 }
+function noiseFloor(x, sr){
+  var w = Math.max(1, Math.floor(sr*0.02)), cnt = Math.floor(x.length/w), i, j;
+  if(cnt < 5) return 0;
+  var pw = new Float32Array(cnt);
+  for(i=0;i<cnt;i++){
+    var a = 0, o = i*w;
+    for(j=0;j<w;j++){ var v = x[o+j]; a += v*v; }
+    pw[i] = a/w;
+  }
+  var sorted = Float32Array.from(pw).sort();
+  return Math.sqrt(sorted[Math.floor(cnt*0.15)]);
+}
 function soft(v){
   var a = Math.abs(v);
   if(a <= 0.85) return v;
@@ -622,7 +660,9 @@ function draw(){
   function bar(i, mn, mx, color, alpha){
     var y1 = mid - mx*scale, y2 = mid - mn*scale;
     g.globalAlpha = alpha; g.fillStyle = color;
-    g.fillRect(i*bw + (bw - barW)/2, y1, barW, Math.max(1, y2 - y1));
+    var bx = i*bw + (bw - barW)/2, bh = Math.max(1.5, y2 - y1);
+    if(g.roundRect){ g.beginPath(); g.roundRect(bx, y1, barW, bh, Math.min(barW/2, 2.5)); g.fill(); }
+    else{ g.fillRect(bx, y1, barW, bh); }
     g.globalAlpha = 1;
   }
   g.font = '600 12px ' + fontBody;
@@ -636,8 +676,8 @@ function draw(){
       bar(i, -a*0.92, a, grain, 1 - t);
       bar(i, -a*0.92, a, gold, t);
     }
-    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('शोर', 10, 8);
-    g.fillStyle = gold; g.globalAlpha = 0.35 + 0.65*t; g.textAlign = 'right'; g.fillText('शुद्ध', w - 10, 8); g.globalAlpha = 1;
+    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('NOISE', 10, 10);
+    g.fillStyle = gold; g.globalAlpha = 0.35 + 0.65*t; g.textAlign = 'right'; g.fillText('PURE', w - 10, 10); g.globalAlpha = 1;
     return;
   }
 
@@ -654,8 +694,8 @@ function draw(){
   }
 
   if(pC){
-    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('मूल', 10, 8);
-    g.fillStyle = gold; g.textAlign = 'right'; g.fillText('साफ़', w - 10, 8);
+    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('ORIGINAL', 10, 10);
+    g.fillStyle = gold; g.textAlign = 'right'; g.fillText('CLEAN', w - 10, 10);
     g.fillStyle = gold; g.fillRect(divX - 1, 0, 2, h);
     g.beginPath(); g.arc(divX, mid, 15, 0, Math.PI*2);
     g.fillStyle = panel; g.fill(); g.lineWidth = 2; g.strokeStyle = gold; g.stroke();
@@ -663,7 +703,7 @@ function draw(){
     g.beginPath(); g.moveTo(divX - 4, mid - 5); g.lineTo(divX - 9, mid); g.lineTo(divX - 4, mid + 5); g.closePath(); g.fill();
     g.beginPath(); g.moveTo(divX + 4, mid - 5); g.lineTo(divX + 9, mid); g.lineTo(divX + 4, mid + 5); g.closePath(); g.fill();
   }else{
-    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('मूल', 10, 8);
+    g.fillStyle = muted; g.textAlign = 'left'; g.fillText('ORIGINAL', 10, 10);
   }
 
   if(state.dur > 0){
@@ -721,7 +761,7 @@ function updateTransport(){
   if(state.dur > 0){ els.seek.value = String(Math.round(pos/state.dur*1000)); fillOf(els.seek); }
   els.time.textContent = fmt(pos) + ' / ' + fmt(state.dur);
   els.playIcon.setAttribute('d', player.playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M7 4.5v15l12-7.5z');
-  els.playBtn.setAttribute('aria-label', player.playing ? 'रोकें' : 'चलाएँ');
+  els.playBtn.setAttribute('aria-label', player.playing ? 'Pause' : 'Play');
 }
 function playLoop(){
   if(!player.playing) return;
@@ -773,10 +813,10 @@ els.seek.addEventListener('input', function(){
 function refreshUI(){
   var has = !!state.orig;
   els.cleanBtn.disabled = !has || state.busy;
-  els.cleanBtn.textContent = state.busy ? 'साफ़ हो रहा है…' : (state.clean ? 'इस सेटिंग से फिर साफ़ करें' : 'आवाज़ साफ़ करें');
+  els.cleanBtn.textContent = state.busy ? 'Cleaning…' : (state.clean ? 'Clean again with these settings' : 'Clean audio');
   els.cleanHint.textContent = has
-    ? 'आपकी फ़ाइल इसी फ़ोन में प्रोसेस होती है।'
-    : 'बटन चालू करने के लिए पहले फ़ाइल चुनिए।';
+    ? 'Your file is processed on this phone.'
+    : 'Choose a file first to enable the button.';
   els.playBtn.disabled = !has || state.busy;
   els.abO.disabled = !has;
   els.abC.disabled = !state.clean;
@@ -785,14 +825,14 @@ function refreshUI(){
   if(state.peaksC){
     els.wave.setAttribute('tabindex', '0');
     els.wave.setAttribute('role', 'slider');
-    els.wave.setAttribute('aria-label', 'पहले और बाद की तुलना');
+    els.wave.setAttribute('aria-label', 'Before and after comparison');
     els.wave.setAttribute('aria-valuemin', '0');
     els.wave.setAttribute('aria-valuemax', '100');
     els.wave.setAttribute('aria-valuenow', String(Math.round(state.divider*100)));
   }else{
     els.wave.setAttribute('tabindex', '-1');
     els.wave.setAttribute('role', 'img');
-    els.wave.setAttribute('aria-label', 'आवाज़ की तरंग');
+    els.wave.setAttribute('aria-label', 'Audio waveform');
   }
   els.saveBox.hidden = !state.clean;
   var canCapture = !!(window.MediaRecorder && HTMLVideoElement.prototype.captureStream || HTMLVideoElement.prototype.mozCaptureStream);
@@ -800,7 +840,7 @@ function refreshUI(){
   els.saveAudio.disabled = state.busy || !state.dl;
   els.saveVideo.disabled = state.busy || !state.dl;
   if(state.clean && !state.dl){
-    els.saveNote.textContent = 'इस व्यू में सेव बटन उपलब्ध नहीं है। क्लॉड ऐप या ब्राउज़र में पेज खोलकर आज़माइए।';
+    els.saveNote.textContent = 'Saving is not available here.';
   }
 }
 function setProgress(f){
@@ -810,10 +850,10 @@ function setProgress(f){
   els.stageMeter.hidden = false;
   els.stageBar.style.width = pct + '%';
   els.meter.setAttribute('aria-valuenow', String(pct));
-  setStatus('साफ़ हो रहा है… ' + pct + '%');
+  setStatus('Cleaning… ' + pct + '%');
 }
 function baseName(){
-  var b = (state.file ? state.file.name : 'audio').replace(/\.[^.]+$/, '').replace(/[^\wऀ-ॿ.-]+/g, '_').slice(0, 80);
+  var b = (state.file ? state.file.name : 'audio').replace(/\.[^.]+$/, '').replace(/[^\w.-]+/g, '_').slice(0, 80);
   return b || 'audio';
 }
 
@@ -828,38 +868,38 @@ async function loadFile(file){
   if(!file || state.busy) return;
   pause();
   state.busy = true; refreshUI();
-  setStatus('फ़ाइल पढ़ी जा रही है…');
+  setStatus('Reading the file…');
   var ab;
   try{
     ab = await decodeFile(file);
   }catch(e){
     state.busy = false; refreshUI();
-    setStatus('यह फ़ाइल नहीं खुल पाई। MP3, WAV, M4A, MP4 या WebM फ़ाइल आज़माइए।', true);
+    setStatus('This file could not be opened. Try an MP3, WAV, M4A, MP4 or WebM file.', true);
     return;
   }
   if(ab.duration < 0.5){
     state.busy = false; refreshUI();
-    setStatus('फ़ाइल बहुत छोटी है। कम से कम आधे सेकंड का ऑडियो चाहिए।', true);
+    setStatus('The file is too short. It needs at least half a second of audio.', true);
     return;
   }
   var chs = [];
   for(var c=0;c<ab.numberOfChannels;c++){ chs.push(ab.getChannelData(c)); }
   state.file = file;
   state.isVideo = /^video\//.test(file.type) || /\.(mp4|mov|mkv|webm|avi|m4v)$/i.test(file.name);
-  state.orig = ab; state.clean = null; state.peaksC = null;
+  state.orig = ab; state.clean = null; state.peaksC = null; els.chips.hidden = true;
   state.peaksO = computePeaks(chs);
   state.dur = ab.duration;
   player.off = 0; player.which = 'orig'; player.playing = false;
   els.abO.setAttribute('aria-pressed', 'true'); els.abC.setAttribute('aria-pressed', 'false');
   els.fileRow.hidden = false;
   els.fileName.textContent = file.name;
-  els.fileMeta.textContent = fmt(ab.duration) + ' · ' + (file.size/1048576).toFixed(1) + ' MB · ' + (state.isVideo ? 'वीडियो' : 'ऑडियो') + ' · ' + ab.numberOfChannels + ' चैनल';
-  els.dropBig.textContent = 'दूसरी फ़ाइल चुनें';
+  els.fileMeta.textContent = fmt(ab.duration) + ' · ' + (file.size/1048576).toFixed(1) + ' MB · ' + (state.isVideo ? 'Video' : 'Audio') + ' · ' + (ab.numberOfChannels === 1 ? 'mono' : 'stereo');
+  els.dropBig.textContent = 'Choose another file';
   els.meter.hidden = true;
   els.vidwrap.hidden = true;
   state.busy = false;
   refreshUI(); updateTransport(); scheduleDraw();
-  setStatus('फ़ाइल तैयार है। मोड चुनकर "आवाज़ साफ़ करें" दबाइए।');
+  setStatus('File ready. Pick a mode and tap "Clean audio".');
 }
 els.file.addEventListener('change', function(){
   var f = els.file.files && els.file.files[0];
@@ -901,7 +941,7 @@ async function runCleanInner(){
   state.busy = true; refreshUI();
   setProgress(0);
   try{
-    var M = MODES[state.mode];
+    var M = MODES[state.mode]; var t0 = performance.now();
     var P = {s:state.strength, hp:M.hp, lp:M.lp, target:M.target, alphaK:M.alphaK};
     var ab = state.orig, nc = ab.numberOfChannels, sr = ab.sampleRate, outs = [];
     for(var c=0;c<nc;c++){
@@ -913,6 +953,14 @@ async function runCleanInner(){
     for(var k=0;k<nc;k++){ cab.copyToChannel(outs[k], k); }
     state.clean = {ch:outs, sr:sr, ab:cab};
     state.peaksC = computePeaks(outs);
+    var nO = noiseFloor(ab.getChannelData(0), sr), nC = noiseFloor(outs[0], sr);
+    var red = (nO > 1e-7 && nC > 1e-7) ? Math.max(0, Math.min(60, 20*Math.log10(nO/nC))) : 0;
+    var rO = activeRms(ab.getChannelData(0), sr), rC = activeRms(outs[0], sr);
+    var dv = (rO > 1e-7 && rC > 1e-7) ? 20*Math.log10(rC/rO) : 0;
+    els.chipNoise.textContent = red < 1 ? 'about 0 dB' : '-' + Math.round(red) + ' dB';
+    els.chipVoice.textContent = (dv >= 0.5 ? '+' : dv <= -0.5 ? '-' : '') + (Math.abs(dv) < 0.5 ? 'about 0' : Math.round(Math.abs(dv))) + ' dB';
+    els.chipTime.textContent = ((performance.now() - t0)/1000).toFixed(1) + ' s';
+    els.chips.hidden = false;
     player.which = 'clean'; player.off = 0;
     els.abO.setAttribute('aria-pressed', 'false'); els.abC.setAttribute('aria-pressed', 'true');
     state.busy = false;
@@ -920,10 +968,10 @@ async function runCleanInner(){
     refreshUI(); updateTransport();
     if(reduce){ state.divider = 0.5; scheduleDraw(); }
     else{ state.divider = 1; animate(1, 0.5, 800, function(v){ state.divider = v; scheduleDraw(); }); }
-    setStatus('तैयार। बीच की रेखा खींचकर पहले और बाद की तुलना कीजिए, फिर साफ़ वाला सुनिए।');
+    setStatus('Done. Drag the gold line to compare before and after, then play the clean version.');
   }catch(e){
     state.busy = false; els.meter.hidden = true; refreshUI();
-    setStatus('सफ़ाई के दौरान गड़बड़ हुई। छोटी फ़ाइल या कम सफ़ाई स्तर के साथ दोबारा कोशिश कीजिए।', true);
+    setStatus('Something went wrong while cleaning. Try a shorter file or a lower cleaning level.', true);
   }
 }
 async function runClean(){
@@ -949,7 +997,7 @@ async function saveOut(filename, data, mime){
   if(Native && FS && SH){
     var u8 = (data instanceof Blob) ? new Uint8Array(await data.arrayBuffer()) : data;
     var res = await FS.writeFile({path: filename, data: toBase64(u8), directory: 'CACHE'});
-    await SH.share({title: filename, dialogTitle: 'साफ़ फ़ाइल सेव करें', url: res.uri});
+    await SH.share({title: filename, dialogTitle: 'Save clean file', url: res.uri});
     return 'shared';
   }
   var blob = (data instanceof Blob) ? data : new Blob([data], {type: mime});
@@ -961,8 +1009,8 @@ async function saveOut(filename, data, mime){
 }
 function saveFail(e){
   var msg = String((e && e.message) || e || '');
-  if(/cancel/i.test(msg)) setStatus('सेव रद्द हुआ।');
-  else setStatus('सेव नहीं हो पाया। दोबारा कोशिश कीजिए।', true);
+  if(/cancel/i.test(msg)) setStatus('Save cancelled.');
+  else setStatus('Could not save. Please try again.', true);
 }
 
 /* ads: a 300x250 rectangle sits at the bottom while a file is processing */
@@ -1009,11 +1057,11 @@ els.saveAudio.addEventListener('click', async function(){
   if(!state.clean) return;
   els.saveAudio.disabled = true;
   try{
-    setStatus('फ़ाइल बनाई जा रही है…');
+    setStatus('Preparing the file…');
     await tick();
     var wav = encodeWav(state.clean.ch, state.clean.sr);
     var how = await saveOut(baseName() + '_shuddh.wav', wav, 'audio/wav');
-    setStatus(how === 'shared' ? 'शेयर मेन्यू खुला है। Files या Drive चुनकर सेव कीजिए।' : 'डाउनलोड शुरू हो गया।');
+    setStatus(how === 'shared' ? 'Share menu opened. Choose Files or Drive to save.' : 'Download started.');
   }catch(e){ saveFail(e); }
   finally{ els.saveAudio.disabled = state.busy; }
 });
@@ -1049,7 +1097,7 @@ async function saveVideoInner(){
       var p = v.duration ? v.currentTime/v.duration : 0;
       var pct = Math.round(p*100) + '%';
       els.vidBar.style.width = pct; els.stageBar.style.width = pct;
-      setStatus('वीडियो बन रहा है… ' + pct + '। ऐप खुला रखिए।');
+      setStatus('Making the video… ' + pct + '. Keep the app open.');
     }, 400);
     rec.start(500);
     src.start(0, 0);
@@ -1061,11 +1109,11 @@ async function saveVideoInner(){
     els.vidBar.style.width = '100%'; els.stageBar.style.width = '100%';
     var blob = new Blob(chunks, {type: 'video/webm'});
     var how = await saveOut(baseName() + '_shuddh.webm', blob, 'video/webm');
-    setStatus(how === 'shared' ? 'वीडियो तैयार। शेयर मेन्यू से सेव कीजिए।' : 'वीडियो डाउनलोड शुरू हो गया।');
+    setStatus(how === 'shared' ? 'Video ready. Save it from the share menu.' : 'Video download started.');
   }catch(e){
     var m = String((e && e.message) || e || '');
-    if(/cancel/i.test(m)) setStatus('सेव रद्द हुआ।');
-    else setStatus('इस फ़ोन पर वीडियो नहीं बन पाया। साफ़ ऑडियो सेव कर लीजिए।', true);
+    if(/cancel/i.test(m)) setStatus('Save cancelled.');
+    else setStatus('This phone could not make the video. Save the clean audio instead.', true);
   }finally{
     if(tid) clearInterval(tid);
     try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){}
