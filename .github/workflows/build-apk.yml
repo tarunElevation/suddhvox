@@ -20,6 +20,11 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      - name: Use the fixed signing key
+        run: |
+          mkdir -p ~/.android
+          cp ci/debug.keystore ~/.android/debug.keystore
+
       - name: Install packages
         run: npm install
 

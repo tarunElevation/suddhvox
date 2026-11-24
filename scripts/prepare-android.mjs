@@ -57,3 +57,15 @@ if (fs.existsSync(iconSrc)) {
   fs.writeFileSync(`${any}/ic_launcher_round.xml`, adaptive);
   console.log('App icons installed');
 }
+
+// Version number goes up with every GitHub build, so Android treats each new APK as an update.
+const run = parseInt(process.env.GITHUB_RUN_NUMBER || '1', 10);
+const gradlePath = 'android/app/build.gradle';
+let gradle = fs.readFileSync(gradlePath, 'utf8');
+if (/versionCode\s+\d+/.test(gradle)) {
+  gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${run}`).replace(/versionName\s+"[^"]*"/, `versionName "1.0.${run}"`);
+  fs.writeFileSync(gradlePath, gradle);
+  console.log('versionCode set to', run);
+} else {
+  console.log('versionCode line not found, left as is');
+}
