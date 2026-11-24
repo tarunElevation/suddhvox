@@ -46,6 +46,10 @@ While a file is being processed, the top half shows the waveform and progress, a
 
 After a change, run **Build APK** again.
 
+## App icon
+
+The icons are made by `resources/make_icons.py` (needs Pillow) and saved in `resources/android`. The build copies them into the app. To change the look, edit that script, run `python3 resources/make_icons.py`, and commit the new images. `resources/play-store-icon-512.png` is the 512x512 icon for the Play Store listing.
+
 ## Before Play Store
 
 - A Play Console developer account
