@@ -69,3 +69,42 @@ if (/versionCode\s+\d+/.test(gradle)) {
 } else {
   console.log('versionCode line not found, left as is');
 }
+
+// In-app updater: a small native plugin that downloads the new APK with progress and opens Android's installer.
+const appPackage = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8')).appId;
+const javaDir = `android/app/src/main/java/${appPackage.replace(/\./g, '/')}`;
+if (fs.existsSync(javaDir) && fs.existsSync('resources/native/UpdaterPlugin.java')) {
+  for (const f of ['UpdaterPlugin.java', 'UpdaterFileProvider.java']) {
+    fs.writeFileSync(`${javaDir}/${f}`, fs.readFileSync(`resources/native/${f}`, 'utf8').replace(/__PACKAGE__/g, appPackage));
+  }
+  fs.writeFileSync(`${javaDir}/MainActivity.java`, `package ${appPackage};
+
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(UpdaterPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+`);
+  fs.mkdirSync('android/app/src/main/res/xml', { recursive: true });
+  fs.copyFileSync('resources/native/updater_paths.xml', 'android/app/src/main/res/xml/updater_paths.xml');
+  let man = fs.readFileSync(manifestPath, 'utf8');
+  if (!man.includes('REQUEST_INSTALL_PACKAGES')) {
+    man = man.replace('</manifest>', '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n</manifest>');
+  }
+  if (!man.includes('UpdaterFileProvider')) {
+    man = man.replace('</application>',
+      `        <provider android:name="${appPackage}.UpdaterFileProvider" android:authorities="\${applicationId}.updater" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/updater_paths" />
+        </provider>
+    </application>`);
+  }
+  fs.writeFileSync(manifestPath, man);
+  console.log('Updater plugin installed');
+} else {
+  console.log('Updater plugin NOT installed (java folder or source missing):', javaDir);
+}

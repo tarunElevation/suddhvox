@@ -7,11 +7,29 @@ An Android app that removes background noise from audio and video. Created by Ta
 1. Open this repository on GitHub and go to the **Actions** tab.
 2. Choose **Build APK**, then tap **Run workflow**.
 3. After 5 to 10 minutes open the finished run. Under **Artifacts** you will find **ShuddhVox-apk**.
-4. Download it and unzip it. Inside is `app-debug.apk`. Install it on your phone.
+4. Download it and unzip it. Inside is `ShuddhVox.apk`. Install it on your phone.
 
 The first time, Android asks to allow installs from unknown sources. Allow it.
 
 This is a debug APK for testing. Play Store needs a signed release build, which is the next step.
+
+## Sending updates to people who installed the app
+
+Every time the app opens it asks GitHub for the newest release. If the release is newer than the installed app, it downloads the APK on its own and shows a popup with the percentage. When the download ends the person taps **Install update** and confirms in Android. Android does not allow an app to install itself silently, so that one tap cannot be removed. The first time, Android also asks to allow installs from this app.
+
+To publish an update:
+1. Actions, **Build APK**, **Run workflow**.
+2. Turn on **Send this build to everyone as an update**.
+3. Write a short note in **What is new**. People see it in the popup.
+4. Run it. When it finishes, a release named `build-<number>` appears under **Releases**, and installed apps pick it up the next time they open.
+
+A normal run with the switch off only builds the APK for testing and sends nothing to anyone.
+
+The release file is public because this repository is public.
+
+The update check is on only if `www/update.json` has `"enabled": true`. For a Play Store version set it to `false`. Play Store apps must update through the Play Store.
+
+Updates only install over the installed app when both were signed with the same key. The fixed test key in `ci/debug.keystore` is used for that.
 
 ## Noise removal engine
 

@@ -2,8 +2,20 @@ name: Build APK
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Send this build to everyone as an update'
+        type: boolean
+        default: false
+      notes:
+        description: 'What is new (shown in the update popup)'
+        type: string
+        default: 'Improvements and fixes'
   push:
     branches: [main, master]
+
+permissions:
+  contents: write
 
 jobs:
   apk:
@@ -53,8 +65,20 @@ jobs:
           done
           exit 1
 
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ShuddhVox.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ShuddhVox-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ShuddhVox.apk
+
+      - name: Publish as an update
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          gh release create "build-$RUN_NUMBER" ShuddhVox.apk --title "ShuddhVox 1.0.$RUN_NUMBER" --notes "$NOTES" --latest

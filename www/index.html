@@ -230,6 +230,19 @@ body.processing{overflow:hidden}
 }
 @media (max-height:640px){ .eq{height:40px} }
 @media (prefers-reduced-motion: reduce){ .eq i{animation:none; height:var(--h)} }
+
+/* update popup */
+.upd{position:fixed; inset:0; z-index:90; display:grid; place-items:center; padding:16px;
+  padding-top:max(16px, var(--sat)); padding-bottom:max(16px, var(--sab)); background:rgba(0,0,0,.62)}
+.upd-card{width:min(420px, 100%); max-height:100%; overflow-y:auto; display:grid; gap:12px; padding:20px;
+  background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:0 24px 60px -20px rgba(0,0,0,.7)}
+.upd-card h2{margin:0; font:400 1.5rem/1.2 var(--font-display)}
+.upd-ver{margin:0; font:500 .8125rem var(--font-mono); color:var(--gold)}
+.upd-notes{margin:0; color:var(--muted); font-size:.9375rem; overflow-wrap:anywhere}
+.upd-row{display:flex; justify-content:space-between; gap:12px; font:500 .875rem var(--font-mono); color:var(--muted); font-variant-numeric:tabular-nums}
+.upd-row b{color:var(--gold); font-weight:500}
+.upd-msg{margin:0; color:var(--muted); font-size:.9375rem; min-height:1.4em}
+.upd-btns{display:grid; gap:8px}
 </style>
 </head>
 <body>
@@ -390,6 +403,21 @@ body.processing{overflow:hidden}
   <div class="adbox" id="adbox">Advertisement</div>
 </div>
 
+<div class="upd" id="upd" role="dialog" aria-modal="true" aria-labelledby="updTitle" hidden>
+  <div class="upd-card">
+    <h2 id="updTitle">Update available</h2>
+    <p class="upd-ver" id="updVer"></p>
+    <p class="upd-notes" id="updNotes" hidden></p>
+    <div class="meter" id="updMeter" role="progressbar" aria-label="Download progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="updBar"></i></div>
+    <div class="upd-row"><span id="updSize"></span><b id="updPct">0%</b></div>
+    <p class="upd-msg" id="updMsg" aria-live="polite"></p>
+    <div class="upd-btns">
+      <button class="btn primary" id="updBtn" type="button" hidden>Install update</button>
+      <button class="btn" id="updLater" type="button">Hide</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
 'use strict';
@@ -406,7 +434,7 @@ var MODES = {
 
 var ids = ['wave','status','file','drop','dropBig','fileRow','fileName','fileMeta','strength','strengthVal',
   'cleanBtn','meter','meterBar','cleanHint','playBtn','playIcon','abO','abC','time','seek',
-  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar','chips','chipNoise','chipVoice','chipTime','chipEngine','proc','procTitle','procPct','procBar','procMsg','procBtn'];
+  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar','chips','chipNoise','chipVoice','chipTime','chipEngine','proc','procTitle','procPct','procBar','procMsg','procBtn','upd','updTitle','updVer','updNotes','updMeter','updBar','updSize','updPct','updMsg','updBtn','updLater'];
 var els = {};
 ids.forEach(function(id){ els[id] = document.getElementById(id); });
 
@@ -1333,6 +1361,96 @@ function route(){
 }
 window.addEventListener('hashchange', route);
 
+/* ---------- in-app updates: the app looks for a newer release on GitHub every time it opens ---------- */
+var upd = {info:null, state:'idle', path:null, hooked:false};
+function updMB(n){ return (n/1048576).toFixed(1) + ' MB'; }
+function updView(o){
+  els.updTitle.textContent = o.title;
+  els.updMsg.textContent = o.msg || '';
+  var pct = Math.max(0, Math.min(100, Math.round(o.pct || 0)));
+  els.updBar.style.width = pct + '%';
+  els.updMeter.setAttribute('aria-valuenow', String(pct));
+  els.updPct.textContent = pct + '%';
+  els.updSize.textContent = o.size || '';
+  els.updBtn.hidden = !o.btn;
+  if(o.btn) els.updBtn.textContent = o.btn;
+  els.updLater.textContent = o.later || 'Hide';
+}
+async function updStartDownload(){
+  var U = plug('Updater');
+  upd.state = 'downloading';
+  var total = upd.info.size || 0;
+  updView({title:'Downloading update', msg:'Keep the app open. This takes a minute.', pct:0, size:total ? '0.0 of ' + updMB(total) : '', btn:null, later:'Hide'});
+  els.upd.hidden = false;
+  try{
+    if(!upd.hooked){
+      upd.hooked = true;
+      U.addListener('progress', function(e){
+        if(upd.state !== 'downloading') return;
+        var t = e.total || total;
+        updView({title:'Downloading update', msg:'Keep the app open. This takes a minute.', pct:e.percent || 0,
+          size: t ? updMB(e.received || 0) + ' of ' + updMB(t) : updMB(e.received || 0), btn:null, later:'Hide'});
+      });
+    }
+    var res = await U.download({url: upd.info.url});
+    upd.path = res.path; upd.state = 'ready';
+    updView({title:'Update ready', msg:'Tap Install update. Android will ask you to confirm.', pct:100, size: total ? updMB(total) : '', btn:'Install update', later:'Later'});
+    els.upd.hidden = false;
+  }catch(e){
+    upd.state = 'error';
+    updView({title:'Download failed', msg:'Check your internet connection and try again.', pct:0, size:'', btn:'Try again', later:'Close'});
+    els.upd.hidden = false;
+  }
+}
+async function updInstallTap(){
+  var U = plug('Updater');
+  if(upd.state === 'error'){ updStartDownload(); return; }
+  if(upd.state === 'needperm'){
+    try{ await U.openInstallSettings(); }catch(e){}
+    upd.state = 'ready';
+    updView({title:'Update ready', msg:'After you allow it, come back here and tap Install update.', pct:100, size:'', btn:'Install update', later:'Later'});
+    return;
+  }
+  if(upd.state !== 'ready') return;
+  try{
+    var can = await U.canInstall();
+    if(!can || !can.value){
+      upd.state = 'needperm';
+      updView({title:'One more step', msg:'Android needs your permission for ShuddhVox to install updates. Tap the button, turn on "Allow from this source", then return.', pct:100, size:'', btn:'Open settings', later:'Later'});
+      return;
+    }
+    await U.install({path: upd.path});
+  }catch(e){
+    updView({title:'Could not start the installer', msg:String((e && e.message) || e).slice(0, 120), pct:100, size:'', btn:'Install update', later:'Close'});
+  }
+}
+els.updBtn.addEventListener('click', updInstallTap);
+els.updLater.addEventListener('click', function(){ els.upd.hidden = true; });
+async function updInit(){
+  var U = plug('Updater');
+  if(!Native || !U) return;
+  try{
+    var cfg = await (await fetch('update.json')).json();
+    if(!cfg || !cfg.enabled || !cfg.repo) return;
+    var cur = await U.getVersion();
+    var ctrl = new AbortController();
+    var tm = setTimeout(function(){ ctrl.abort(); }, 8000);
+    var r = await fetch('https://api.github.com/repos/' + cfg.repo + '/releases/latest', {headers:{'Accept':'application/vnd.github+json'}, signal: ctrl.signal});
+    clearTimeout(tm);
+    if(!r.ok) return;
+    var rel = await r.json();
+    var m = /(\d+)\s*$/.exec(rel.tag_name || '');
+    var asset = (rel.assets || []).filter(function(a){ return /\.apk$/i.test(a.name || ''); })[0];
+    if(!m || !asset || parseInt(m[1], 10) <= Number(cur.versionCode)) return;
+    var notes = String(rel.body || '').trim();
+    upd.info = {url: asset.browser_download_url, size: asset.size || 0};
+    els.updVer.textContent = 'Version 1.0.' + m[1] + ' (you have ' + (cur.versionName || cur.versionCode) + ')';
+    els.updNotes.textContent = notes.slice(0, 240);
+    els.updNotes.hidden = !notes;
+    updStartDownload();
+  }catch(e){ /* offline or no release yet: stay quiet */ }
+}
+
 /* ---------- boot ---------- */
 if(window.ResizeObserver){ new ResizeObserver(scheduleDraw).observe(els.wave); }
 window.addEventListener('resize', scheduleDraw);
@@ -1349,6 +1467,7 @@ updateTransport();
 
 state.dl = true; refreshUI();
 adsInit();
+updInit();
 
 function startDemo(){
   var target = state.strength/100;
