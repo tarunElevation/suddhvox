@@ -259,6 +259,7 @@ body.processing{overflow:hidden}
           <span class="chip"><b id="chipNoise">-</b>clearer voice</span>
           <span class="chip"><b id="chipVoice">-</b>voice level</span>
           <span class="chip"><b id="chipTime">-</b>to clean</span>
+          <span class="chip"><b id="chipEngine">-</b>cleaner</span>
         </div>
 
         <div class="transport" id="player">
@@ -313,11 +314,11 @@ body.processing{overflow:hidden}
         <div class="sec">
           <h2 class="step-h"><b>03</b><span class="t">Cleaning level</span></h2>
           <div>
-            <div class="level-head"><label for="strength" class="sr">Cleaning level</label><span></span><span class="level-val" id="strengthVal">75%</span></div>
-            <input type="range" id="strength" min="0" max="100" value="75" step="1">
+            <div class="level-head"><label for="strength" class="sr">Cleaning level</label><span></span><span class="level-val" id="strengthVal">90%</span></div>
+            <input type="range" id="strength" min="0" max="100" value="90" step="1">
             <div class="level-ends"><span>Light</span><span>Full</span></div>
           </div>
-          <p class="hint">A higher level can make the voice sound slightly muffled. Try 60 to 75 first.</p>
+          <p class="hint">A higher level removes more noise but can make the voice sound slightly processed. Try 70 to 90 first.</p>
         </div>
 
         <div class="sec">
@@ -355,24 +356,25 @@ body.processing{overflow:hidden}
       <div>
         <h3>How it works</h3>
         <ul>
-          <li>It learns the noise from the quietest parts of your file.</li>
-          <li>It then lowers that noise in every frequency, as much as the cleaning level allows.</li>
-          <li>In Call and Vlog modes the voice volume is also balanced.</li>
+          <li>An AI noise model (RNNoise) separates the voice from the background sound.</li>
+          <li>The cleaning level sets how much of the AI result is mixed in.</li>
+          <li>If the AI model cannot start, a basic noise filter is used instead.</li>
           <li>Everything happens on your phone. Your file never goes to a server.</li>
           <li>The app is free. Ads are shown while a file is being processed.</li>
         </ul>
       </div>
       <div>
         <h3>Limits</h3>
-        <p>It works best on steady noise such as fan hiss, wind, air conditioners and constant crowd hum. Changing sounds, like another conversation or music in the background, are not fully separated. That needs an AI source-separation model, which can be a later upgrade.</p>
+        <p>It works best on steady noise such as fan hiss, wind, air conditioners and constant crowd hum. Changing sounds, like another conversation or music in the background, are not fully separated. Voices that are as loud as the main voice cannot be separated by this model.</p>
       </div>
-      <p class="hint">Version 0.1 · Prototype</p>
+      <p class="hint">Noise model: RNNoise by Xiph.Org, BSD licence, with the @shiguredo/rnnoise-wasm package, Apache-2.0.</p>
+      <p class="hint">Version 0.2 · Prototype</p>
     </article>
   </main>
 
   <footer class="foot">
     <span>Created by <b>Tarun</b></span>
-    <span class="mono">ShuddhVox v0.1</span>
+    <span class="mono">ShuddhVox v0.2</span>
   </footer>
 </div>
 
@@ -397,21 +399,21 @@ var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce
 var COLS = 200;
 
 var MODES = {
-  call:   {strength:75, hp:90, lp:7600,  target:0.10,  alphaK:2.4},
-  vlog:   {strength:60, hp:80, lp:18000, target:0.125, alphaK:2.2},
-  cinema: {strength:40, hp:25, lp:20000, target:null,  alphaK:1.6}
+  call:   {strength:90, hp:90, lp:7600,  target:0.10,  alphaK:2.4},
+  vlog:   {strength:85, hp:80, lp:18000, target:0.125, alphaK:2.2},
+  cinema: {strength:35, hp:25, lp:20000, target:null,  alphaK:1.6}
 };
 
 var ids = ['wave','status','file','drop','dropBig','fileRow','fileName','fileMeta','strength','strengthVal',
   'cleanBtn','meter','meterBar','cleanHint','playBtn','playIcon','abO','abC','time','seek',
-  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar','chips','chipNoise','chipVoice','chipTime','proc','procTitle','procPct','procBar','procMsg','procBtn'];
+  'saveBox','saveAudio','saveVideo','saveNote','vid','vidwrap','vidBar','stageMeter','stageBar','chips','chipNoise','chipVoice','chipTime','chipEngine','proc','procTitle','procPct','procBar','procMsg','procBtn'];
 var els = {};
 ids.forEach(function(id){ els[id] = document.getElementById(id); });
 
 var state = {
   file:null, isVideo:false, orig:null, clean:null,
   peaksO:null, peaksC:null,
-  mode:'call', strength:75, demoT:0, divider:0.5, dur:0,
+  mode:'call', strength:90, demoT:0, divider:0.5, dur:0,
   busy:false, dl:null
 };
 var player = {ctx:null, src:null, playing:false, t0:0, off:0, which:'orig'};
@@ -979,6 +981,102 @@ Array.prototype.forEach.call(document.querySelectorAll('input[name="mode"]'), fu
   });
 });
 
+/* ---------- AI engine (RNNoise), copied into the app at build time ---------- */
+var AI = {tried:false, rn:null, err:''};
+async function loadAI(){
+  if(AI.tried) return AI.rn;
+  AI.tried = true;
+  try{
+    var info = await (await fetch('vendor/rnnoise/entry.json')).json();
+    var url = new URL('vendor/rnnoise/' + info.entry, document.baseURI).href;
+    var mod;
+    try{ mod = await import(url); }
+    catch(e1){
+      var txt = await (await fetch(url)).text();
+      var bu = URL.createObjectURL(new Blob([txt], {type:'text/javascript'}));
+      mod = await import(bu);
+    }
+    var R = mod.Rnnoise || (mod.default && mod.default.Rnnoise) || mod.default;
+    AI.rn = await R.load();
+  }catch(e){
+    AI.err = String((e && e.message) || e || 'unknown');
+    AI.rn = null;
+  }
+  return AI.rn;
+}
+function cubic(x, p){
+  var n = x.length, i = Math.floor(p), t = p - i, m = n - 1;
+  var i0 = i - 1, i1 = i, i2 = i + 1, i3 = i + 2;
+  i0 = i0 < 0 ? 0 : (i0 > m ? m : i0);
+  i1 = i1 < 0 ? 0 : (i1 > m ? m : i1);
+  i2 = i2 < 0 ? 0 : (i2 > m ? m : i2);
+  i3 = i3 < 0 ? 0 : (i3 > m ? m : i3);
+  var a = x[i0], b = x[i1], c = x[i2], d = x[i3];
+  return b + 0.5*t*(c - a + t*(2*a - 5*b + 4*c - d + t*(3*(b - c) + d - a)));
+}
+/* the model answers about 10 ms late; find the exact delay so the clean voice lines up with the original */
+function findLag(x, ratio, wet, tot){
+  var win = Math.min(72000, tot - 1200);
+  if(win < 4800) return 0;
+  var hop = 24000, best = 0, bestE = -1, s, j;
+  for(s=0; s + win + 960 <= tot; s += hop){
+    var e = 0;
+    for(j=0;j<win;j+=24){ var q = wet[s + j]; e += q*q; }
+    if(e > bestE){ bestE = e; best = s; }
+  }
+  var dry = new Float32Array(win);
+  for(j=0;j<win;j++){ dry[j] = cubic(x, (best + j)*ratio); }
+  var bl = 0, bc = -1e30, lag;
+  for(lag=0; lag<=960; lag++){
+    if(best + lag + win > tot) break;
+    var c = 0;
+    for(j=0;j<win;j+=2){ c += dry[j]*wet[best + lag + j]; }
+    if(c > bc){ bc = c; bl = lag; }
+  }
+  return bl;
+}
+async function aiChannel(x, sr, mix, onProg){
+  var RN = 48000, ratio = sr/RN, L = x.length;
+  var n48 = Math.floor(L/ratio), frames = Math.ceil(n48/480), tot = frames*480;
+  var wet = new Int16Array(tot), st = AI.rn.createDenoiseState();
+  var fr = new Int16Array(480), ff = null, asFloat = false, f, j, i;
+  try{
+    for(f=0; f<frames; f++){
+      var base = f*480;
+      for(j=0;j<480;j++){
+        var v = cubic(x, (base + j)*ratio);
+        v = v < -1 ? -1 : (v > 1 ? 1 : v);
+        fr[j] = v < 0 ? v*32768 : v*32767;
+      }
+      if(!asFloat){
+        try{ st.processFrame(fr); }
+        catch(e){
+          if(f > 0) throw e;
+          asFloat = true; ff = new Float32Array(480);
+        }
+      }
+      if(asFloat){
+        for(j=0;j<480;j++){ ff[j] = fr[j]; }
+        st.processFrame(ff);
+        for(j=0;j<480;j++){ var q = ff[j]; fr[j] = q < -32768 ? -32768 : (q > 32767 ? 32767 : q); }
+      }
+      wet.set(fr, base);
+      if(f % 200 === 199){ onProg(0.9*f/frames); await tick(); }
+    }
+  }finally{ try{ st.destroy(); }catch(e){} }
+
+  var lag = findLag(x, ratio, wet, tot);
+  var out = new Float32Array(L), k48 = 1/ratio;
+  for(i=0;i<L;i++){
+    out[i] = cubic(wet, i*k48 + lag)/32768;
+    if((i & 0x3ffff) === 0x3ffff){ onProg(0.9 + 0.1*i/L); await tick(); }
+  }
+  var rIn = activeRms(x, sr), rOut = activeRms(out, sr);
+  if(rIn > 1e-6 && (!isFinite(rOut) || rOut < rIn*0.03 || rOut > rIn*3)){ throw new Error('AI output looked wrong'); }
+  for(i=0;i<L;i++){ out[i] = mix*out[i] + (1 - mix)*x[i]; }
+  return out;
+}
+
 /* ---------- clean ---------- */
 async function runCleanInner(){
   if(!state.orig || state.busy) return;
@@ -988,9 +1086,22 @@ async function runCleanInner(){
   try{
     var M = MODES[state.mode]; var t0 = performance.now();
     var P = {s:state.strength, hp:M.hp, lp:M.lp, target:M.target, alphaK:M.alphaK};
-    var ab = state.orig, nc = ab.numberOfChannels, sr = ab.sampleRate, outs = [];
-    for(var c=0;c<nc;c++){
-      outs.push(await denoiseChannel(ab.getChannelData(c), sr, P, function(f){ setProgress((c + f)/nc); }));
+    var ab = state.orig, nc = ab.numberOfChannels, sr = ab.sampleRate, outs = [], usedAI = false, aiWhy = '';
+    var rn = await loadAI();
+    if(!rn) aiWhy = AI.err || 'not installed';
+    else if(ab.duration > 1200) aiWhy = 'file is longer than 20 minutes';
+    if(rn && !aiWhy){
+      try{
+        for(var c=0;c<nc;c++){
+          outs.push(await aiChannel(ab.getChannelData(c), sr, state.strength/100, function(f){ setProgress((c + f)/nc); }));
+        }
+        usedAI = true;
+      }catch(e){ outs = []; aiWhy = String((e && e.message) || e); }
+    }
+    if(!usedAI){
+      for(var c2=0;c2<nc;c2++){
+        outs.push(await denoiseChannel(ab.getChannelData(c2), sr, P, function(f){ setProgress((c2 + f)/nc); }));
+      }
     }
     finalize(outs, sr, P);
     var ctx = ensureCtx();
@@ -1006,6 +1117,7 @@ async function runCleanInner(){
     els.chipNoise.textContent = snr < 1 ? 'about 0 dB' : '+' + Math.round(snr) + ' dB';
     els.chipVoice.textContent = (dv >= 0.5 ? '+' : dv <= -0.5 ? '-' : '') + (Math.abs(dv) < 0.5 ? 'about 0' : Math.round(Math.abs(dv))) + ' dB';
     els.chipTime.textContent = ((performance.now() - t0)/1000).toFixed(1) + ' s';
+    els.chipEngine.textContent = usedAI ? 'AI model' : 'Basic';
     els.chips.hidden = false;
     player.which = 'clean'; player.off = 0;
     els.abO.setAttribute('aria-pressed', 'false'); els.abC.setAttribute('aria-pressed', 'true');
@@ -1014,7 +1126,7 @@ async function runCleanInner(){
     refreshUI(); updateTransport();
     if(reduce){ state.divider = 0.5; scheduleDraw(); }
     else{ state.divider = 1; animate(1, 0.5, 800, function(v){ state.divider = v; scheduleDraw(); }); }
-    setStatus('Done. Drag the gold line to compare before and after, then play the clean version.');
+    setStatus(usedAI ? 'Done. Drag the gold line to compare before and after, then play the clean version.' : 'Done with basic cleaning. The AI cleaner could not start (' + aiWhy.slice(0, 90) + ').');
     return true;
   }catch(e){
     state.busy = false; els.meter.hidden = true; refreshUI();

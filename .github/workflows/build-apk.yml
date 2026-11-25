@@ -28,6 +28,12 @@ jobs:
       - name: Install packages
         run: npm install
 
+      - name: Add the AI noise model
+        continue-on-error: true
+        run: |
+          npm install --no-save --no-package-lock @shiguredo/rnnoise-wasm@2025.1.5
+          node scripts/vendor-rnnoise.mjs
+
       - name: Add Android project
         run: npx cap add android
 

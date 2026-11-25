@@ -5,3 +5,4 @@ node_modules/
 !ci/debug.keystore
 *.jks
 .DS_Store
+/www/vendor/

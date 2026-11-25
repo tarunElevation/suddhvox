@@ -13,6 +13,14 @@ The first time, Android asks to allow installs from unknown sources. Allow it.
 
 This is a debug APK for testing. Play Store needs a signed release build, which is the next step.
 
+## Noise removal engine
+
+The app uses RNNoise, an AI noise suppressor, through the `@shiguredo/rnnoise-wasm` package. The build downloads it and puts it inside the app (`scripts/vendor-rnnoise.mjs`). The cleaning level is how much of the AI result is mixed with the original.
+
+After cleaning, the result strip shows which engine ran: **AI model** or **Basic**. Basic is a simpler built-in filter that the app uses if the AI model cannot start. If you see Basic, the status line under the waveform gives the reason. Send that line to the developer.
+
+Licences are in `THIRD_PARTY_NOTICES.md`.
+
 ## Ads (AdMob)
 
 All ad settings are in `www/admob.json`:
